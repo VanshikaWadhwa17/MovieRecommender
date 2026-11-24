@@ -1905,3 +1905,36 @@ Tested three scenarios:
 - Preserves structured movie results for the caller.
 - Logs the underlying exception for debugging.
 - Separates AI generation failures from database query failures.
+
+**Update:** The broad `except Exception` handler was later narrowed to `requests.exceptions.RequestException` in Section 26.
+
+---
+
+## 26. Narrowing Ollama Exception Handling
+
+### Decision
+
+Replace the broad `except Exception` handler with `except requests.exceptions.RequestException` in `movie_service.py`.
+
+### Reason
+
+The broad exception handler could hide unrelated programming errors. The narrower handler catches errors related to HTTP requests to Ollama, including:
+
+- Connection errors when Ollama is unavailable.
+- Request timeouts.
+- HTTP errors returned by the Ollama API.
+
+This makes error handling more specific while allowing unrelated programming errors to surface.
+
+### Validation
+
+Tested the updated implementation in two scenarios:
+
+1. **Ollama running:** All five movie-service test cases completed successfully.
+2. **Ollama stopped:** The application logged the connection error and returned a fallback response while preserving the database movie results.
+
+The no-results scenario also continued to work without calling Ollama.
+
+### Outcome
+
+The application can continue serving database results even when the local LLM service is unavailable. Technical errors are logged for debugging, while users receive a clear fallback message.

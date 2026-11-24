@@ -1,5 +1,5 @@
-
 import logging
+import requests
 
 from sqlalchemy.orm import Session
 
@@ -41,8 +41,10 @@ def search_movies(question: str, db: Session):
         try:
             response = generate_movie_response(question, movies)
 
-        except Exception:
-            logger.exception("Failed to generate movie response using Ollama.")
+        except requests.exceptions.RequestException:
+            logger.exception(
+                "Failed to generate movie response using Ollama."
+            )
             response = (
                 "The matching movies were found, but the AI response "
                 "could not be generated. Please try again later."
