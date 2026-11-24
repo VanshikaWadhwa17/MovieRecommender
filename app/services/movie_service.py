@@ -1,3 +1,4 @@
+
 import logging
 import requests
 
@@ -19,7 +20,10 @@ def search_movies(question: str, db: Session):
     # Step 2: Extract all matching movie titles
     titles = parsed_query["titles"]
 
-    # Step 3: Retrieve matching movies from the database
+    # Step 3: Check whether this is a recommendation request
+    sort_by_rating = parsed_query["intent"] == "recommend"
+
+    # Step 4: Retrieve matching movies from the database
     if parsed_query["intent"] == "movie_details" and not titles:
 
         # A specific movie was requested, but no title was identified
@@ -30,10 +34,11 @@ def search_movies(question: str, db: Session):
             db=db,
             titles=titles if titles else None,
             year=parsed_query["year"],
-            genre=parsed_query["genre"]
+            genre=parsed_query["genre"],
+            sort_by_rating=sort_by_rating
         )
 
-    # Step 4: Generate a response
+    # Step 5: Generate a response
     if not movies:
         response = "Sorry, no matching movies were found in the database."
 
@@ -50,7 +55,7 @@ def search_movies(question: str, db: Session):
                 "could not be generated. Please try again later."
             )
 
-    # Step 5: Return parsed query, database results and response
+    # Step 6: Return parsed query, database results and response
     return {
         "parsed_query": parsed_query,
         "movies": movies,

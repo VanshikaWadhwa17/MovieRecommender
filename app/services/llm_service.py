@@ -80,7 +80,74 @@ def generate_movie_response(question: str, movies: list) -> str:
         ---
         """
 
-    # Build a stricter prompt for the LLM
+    # Identify recommendation questions
+    question_lower = question.lower()
+
+    is_recommendation = any(
+        keyword in question_lower
+        for keyword in ["recommend", "suggest", "recommendation"]
+    )
+
+    # Recommendation response:
+    # Let the LLM generate only a short introduction.
+    # Python will generate the actual movie list.
+    if is_recommendation:
+
+        prompt = f"""
+        You are a movie information assistant.
+
+        The user has asked for movie recommendations.
+
+        Write ONE short introductory sentence.
+        Do not list movie titles.
+        Do not describe individual movies.
+        Do not invent facts.
+        Do not add promotional language.
+
+        USER QUESTION:
+        {question}
+
+        DATABASE RECORDS:
+        {movie_context}
+        """
+
+        introduction = generate_response(prompt).strip()
+
+        # Generate the complete recommendation list directly
+        # from database records, preserving their original order.
+        recommendation_list = []
+
+        for movie in movies:
+
+            if movie.rating:
+                rating = (
+                    f"{movie.rating.vote_average}/10 "
+                    f"({movie.rating.vote_count} votes)"
+                )
+            else:
+                rating = "Not available"
+
+            directors = ", ".join(
+                director.person.name
+                for director in movie.directors
+            )
+
+            if not directors:
+                directors = "Not available"
+
+            recommendation_list.append(
+                f"- **{movie.title} ({movie.year or 'Year unavailable'})**\n"
+                f"  - Rating: {rating}\n"
+                f"  - Director: {directors}"
+            )
+
+        return (
+            f"{introduction}\n\n"
+            + "\n\n".join(recommendation_list)
+        )
+
+    # For non-recommendation questions, retain the existing
+    # database-grounded LLM response behaviour.
     prompt = f"""
     You are a movie information assistant.
 
@@ -102,8 +169,9 @@ def generate_movie_response(question: str, movies: list) -> str:
     7. If information is unavailable, clearly say so.
     8. Do not add promotional language or subjective claims.
     9. Preserve the exact order of the database records.
-    10. Write a maximum of TWO sentences per movie.
-    11. Do not recommend movies outside the database results.
+    10. Do not recommend movies outside the database results.
+    11. Write a maximum of TWO sentences per movie.
+    12. Keep each movie's title, year and rating clear and readable.
 
     USER QUESTION:
     {question}

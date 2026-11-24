@@ -2041,3 +2041,74 @@ The project now has automated coverage across its main application layers. Tests
 - Confirmed that the database records remain the source of factual information.
 
 **Outcome:** Movie metadata is now available to both API consumers and the LLM-powered conversational interface.
+
+---
+
+## 30. Recommendation Ranking and Minimum Vote Threshold
+
+### Decision
+
+Recommendation requests are ranked using movie ratings, vote counts and popularity rather than popularity alone.
+
+A minimum threshold of **100 votes** is applied to recommendations.
+
+### Implementation
+
+When the query parser identifies a recommendation intent:
+
+1. Movies with fewer than 100 votes are excluded.
+2. Remaining movies are sorted by:
+   - Average rating (descending).
+   - Vote count (descending).
+   - Popularity (descending).
+
+Regular movie searches and movie-detail queries are not affected by this threshold.
+
+### Reason
+
+A movie with a very high rating but only a small number of votes may not be a reliable recommendation.
+
+The TMDB dataset contains:
+- 3,162 movies with at least 100 votes.
+- 1,641 movies with fewer than 100 votes.
+
+The threshold provides a more reliable recommendation ranking while retaining a sufficiently large selection of movies.
+
+### Testing
+
+Added automated repository tests to verify:
+- Movies with fewer than 100 votes are excluded from recommendations.
+- Remaining movies are sorted by rating.
+- Regular movie searches retain popularity-based sorting.
+
+All 37 automated tests passed.
+
+---
+
+## 31. Deterministic Recommendation Response Generation
+
+### Problem
+
+The LLM did not consistently include every movie returned by the database when generating recommendations. Some movies were omitted even though they were present in the database results.
+
+### Decision
+
+Use a combination of LLM-generated text and Python-generated output:
+
+1. The LLM generates a short introductory sentence.
+2. Python builds the complete recommendation list directly from the retrieved database records.
+3. Each recommendation includes the movie title, release year, rating, vote count and director.
+4. The original database ranking is preserved.
+
+### Reason
+
+The database is the source of truth. Generating the actual list in Python guarantees that every retrieved movie is included in the correct order, without relying on the LLM to enumerate results accurately.
+
+Non-recommendation queries continue to use the LLM to generate answers from database-provided context.
+
+### Validation
+
+- Tested the recommendation endpoint with 10 action movies.
+- Confirmed all 10 movies appear in the generated response.
+- Confirmed the recommendation order matches the database results.
+- Ran the automated test suite successfully: 37 tests passed.

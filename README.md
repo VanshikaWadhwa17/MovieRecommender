@@ -20,7 +20,7 @@ A conversational AI movie assistant that answers movie-related questions using s
 
 | Component | Technology |
 |---|---|
-| Language | Python |
+| Language | Python 3.11+ |
 | API | FastAPI |
 | Database | SQLite |
 | ORM | SQLAlchemy |
@@ -77,6 +77,11 @@ MovieRecommender/
 
 Run the following commands from the project root.
 
+**Prerequisites:**
+- Python 3.11 or newer
+- Git
+- Ollama (required for AI-powered responses)
+
 ### 1. Clone the repository
 
 ```bash
@@ -130,6 +135,8 @@ Ingest the movie dataset:
 ```bash
 python -m scripts.ingest_movies
 ```
+
+> **Note:** `init_db` creates any missing database tables. It does not reset or delete existing data. The ingestion script populates the database using the supplied CSV files.
 
 The application uses SQLite and stores the generated database at:
 
@@ -247,6 +254,71 @@ The response includes:
 - Matching database records.
 - LLM-generated movie summary.
 
+### Example: Movie Recommendations
+
+Request:
+
+```json
+{
+  "question": "Recommend some action movies"
+}
+```
+
+Endpoint:
+
+```http
+POST /chat
+```
+
+The response includes a short LLM-generated introduction followed by a complete recommendation list built from the database records (title, year, rating, vote count and director), preserving the database ranking.
+
+### Example: No Matching Movies
+
+Request:
+
+```json
+{
+  "question": "Recommend action movies from 2020"
+}
+```
+
+Response:
+
+```json
+{
+  "question": "Recommend action movies from 2020",
+  "parsed_query": {
+    "intent": "recommend",
+    "genre": "Action",
+    "year": 2020,
+    "titles": []
+  },
+  "movies": [],
+  "response": "Sorry, no matching movies were found in the database."
+}
+```
+
+### Example: Ollama Unavailable
+
+If Ollama is unavailable, the application still retrieves matching movie records from SQLite but returns a fallback response instead of an AI-generated summary.
+
+To verify this behaviour:
+
+1. Stop Ollama temporarily, but leave the FastAPI server running.
+2. Run:
+
+```bash
+curl -X POST http://127.0.0.1:8000/chat \
+-H "Content-Type: application/json" \
+-d '{"question":"Tell me about Inception"}'
+```
+
+Example fallback message:
+
+```text
+The matching movies were found, but the AI response could not be generated. Please try again later.
+```
+
 ## Automated Testing
 
 The project uses pytest for automated testing.
@@ -268,7 +340,7 @@ Current automated test coverage includes:
 | `test_movie_service.py` | Movie query processing and LLM failure handling |
 | `test_api.py` | API endpoints, response validation and error handling |
 
-**Current test status:** 36 automated tests passing.
+**Current test status:** 37 automated tests passing.
 
 ## Dataset Information
 
@@ -283,6 +355,14 @@ The project uses the TMDB 5000 Movies dataset.
 
 - **Rows:** 4,803
 - **Fields:** movie ID, title, cast and crew.
+
+### Dataset Coverage
+
+- **Earliest movie release year:** 1916
+- **Latest movie release year:** 2017
+- **Total movies:** 4,803
+
+The dataset does not contain movies released after 2017. Queries for later years will therefore return no matching records.
 
 ### Database Design
 
@@ -312,13 +392,23 @@ The database is the source of truth. The LLM is used to summarise retrieved info
 
 Architectural choices, implementation trade-offs and known limitations are documented in [decisions.md](decisions.md).
 
+## Known Limitations
+
+- **Dataset coverage:** The TMDB dataset contains movies released between 1916 and 2017. More recent releases are not available.
+- **Query understanding:** Natural language parsing is rule-based and may not correctly interpret complex or ambiguous questions.
+- **Movie title matching:** Partial title matching is supported, but typo handling and ambiguous title resolution are limited.
+- **Personalisation:** Recommendations are based on movie metadata and ratings, not individual user preferences or viewing history.
+- **LLM consistency:** The LLM may occasionally produce imperfect introductory text. Recommendation titles and details are generated from database records to preserve completeness and ordering.
+- **Local LLM dependency:** AI-powered responses require Ollama and the configured model to be available. The application has fallback handling when Ollama is unavailable.
+- **Database updates:** The database reflects the supplied CSV files and does not automatically update when new movie data becomes available.
+
 ## Future Improvements
 
 Potential areas for further development include:
 
 - More robust natural language query understanding.
 - Improved movie title matching and typo handling.
-- Better control over LLM response ordering and factual consistency.
+- Improve factual consistency of LLM-generated introductory text.
 - Expanded automated testing.
 - Additional API validation and integration tests.
 - Deployment and production configuration.

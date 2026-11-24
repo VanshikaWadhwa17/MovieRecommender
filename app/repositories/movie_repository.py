@@ -7,7 +7,8 @@ from app.database.models import (
     Genre,
     MovieGenre,
     MovieCast,
-    MovieDirector
+    MovieDirector,
+    Rating
 )
 
 
@@ -25,7 +26,8 @@ def get_movies(
     year: int | None = None,
     genre: str | None = None,
     skip: int = 0,
-    limit: int = 10
+    limit: int = 10,
+    sort_by_rating: bool = False
 ):
     # Start with a query for all movies
     query = db.query(Movie)
@@ -53,8 +55,22 @@ def get_movies(
             .distinct()
         )
 
-    # Sort by popularity (highest first)
-    query = query.order_by(Movie.popularity.desc())
+    # Sort recommendations by rating, vote count and popularity
+    if sort_by_rating:
+        query = (
+            query
+            .join(Rating, Movie.id == Rating.movie_id)
+            .filter(Rating.vote_count >= 100)
+            .order_by(
+                Rating.vote_average.desc(),
+                Rating.vote_count.desc(),
+                Movie.popularity.desc()
+            )
+        )
+
+    # Keep popularity sorting for regular searches
+    else:
+        query = query.order_by(Movie.popularity.desc())
 
     # Load ratings, cast and directors
     query = load_movie_relationships(query)

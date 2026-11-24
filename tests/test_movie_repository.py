@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.database.connection import Base
-from app.database.models import Movie, Genre, MovieGenre
+from app.database.models import Movie, Genre, MovieGenre, Rating
 from app.repositories.movie_repository import get_movies, get_movie_by_id
 
 
@@ -62,6 +62,27 @@ def db():
         MovieGenre(movie_id=2, genre_id=1),
         MovieGenre(movie_id=1, genre_id=2),
         MovieGenre(movie_id=3, genre_id=2)
+    ])
+
+    session.commit()
+
+    # Add ratings for recommendation tests
+    session.add_all([
+        Rating(
+            movie_id=1,
+            vote_average=8.1,
+            vote_count=13752
+        ),
+        Rating(
+            movie_id=2,
+            vote_average=8.2,
+            vote_count=12002
+        ),
+        Rating(
+            movie_id=3,
+            vote_average=9.0,
+            vote_count=50
+        )
     ])
 
     session.commit()
@@ -131,3 +152,18 @@ def test_get_movie_by_id_returns_none_for_missing_movie(db):
     movie = get_movie_by_id(db, 99999)
 
     assert movie is None
+
+
+def test_get_movies_sorts_recommendations_by_rating_and_vote_count(db):
+    movies = get_movies(db, sort_by_rating=True)
+
+    titles = [movie.title for movie in movies]
+
+    # Movies with fewer than 100 votes should be excluded
+    assert "Interstellar" not in titles
+
+    # Remaining movies should be sorted by rating
+    assert titles == [
+        "The Dark Knight",
+        "Inception"
+    ]
