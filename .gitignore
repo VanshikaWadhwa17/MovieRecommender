@@ -24,3 +24,7 @@ __pycache__/
 
 # Local tooling (keep pyrightconfig.json tracked)
 .vscode/
+
+
+# personal documentation
+decisions.md

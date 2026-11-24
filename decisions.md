@@ -1938,3 +1938,81 @@ The no-results scenario also continued to work without calling Ollama.
 ### Outcome
 
 The application can continue serving database results even when the local LLM service is unavailable. Technical errors are logged for debugging, while users receive a clear fallback message.
+
+---
+
+## 27. Automated Testing Strategy
+
+### Decision
+
+Introduce automated tests using `pytest` to validate the application's core functionality and reduce the need for repeated manual testing.
+
+### Testing Coverage
+
+Four test modules were created:
+
+1. `tests/test_query_parser.py`
+   - Tests intent detection, genre extraction, year extraction and movie title extraction.
+   - Tests combined query parsing and movie title caching.
+
+2. `tests/test_movie_repository.py`
+   - Tests retrieving movies, title/year/genre filtering, popularity sorting and pagination.
+   - Tests retrieving movies by ID, including missing records.
+   - Uses a separate temporary SQLite database to avoid modifying the actual TMDB database.
+
+3. `tests/test_movie_service.py`
+   - Tests successful movie searches, empty search results and Ollama failures.
+   - Uses mocks to avoid depending on a running Ollama instance.
+
+4. `tests/test_api.py`
+   - Tests the health, movie search, movie details and chat endpoints.
+   - Tests HTTP 404 for missing movies and HTTP 422 for invalid chat requests.
+   - Uses mocked dependencies to isolate API behaviour.
+
+### Tools
+
+- pytest for test execution and assertions.
+- FastAPI TestClient for API endpoint testing.
+- unittest.mock for replacing external dependencies.
+- Temporary SQLite database for isolated repository tests.
+
+### Validation
+
+All 36 automated tests passed when executed together using:
+
+`python -m pytest -v`
+
+### Outcome
+
+The project now has automated coverage across its main application layers. Tests can be rerun after future changes to identify regressions without relying entirely on manual testing.
+
+---
+
+## 28. Environment-Based Configuration and Pytest Discovery
+
+### 28.1 Environment-Based Configuration
+
+**Decision:** Move Ollama configuration values from hardcoded constants into environment variables.
+
+**Implementation:**
+- Created a `.env` file.
+- Moved `OLLAMA_URL`, `MODEL_NAME` and `OLLAMA_TIMEOUT` into environment variables.
+- Used `python-dotenv` to load configuration.
+- Added default values using `os.getenv()` to ensure the application can still run if environment variables are unavailable.
+- Confirmed that `.env` and `.env.*` are excluded through `.gitignore`.
+
+**Validation:**
+- Verified that all three environment variables load correctly.
+- Successfully generated movie summaries using Ollama and Qwen 2.5 7B.
+
+### 28.2 Pytest Test Discovery
+
+**Problem:** Running the complete pytest suite initially executed manual test scripts inside the `scripts/` directory. These scripts performed operations such as database queries and Ollama requests during import, causing unnecessary delays.
+
+**Decision:** Configure pytest to discover automated tests only inside the `tests/` directory.
+
+**Implementation:**
+- Created `pytest.ini`.
+- Configured `testpaths = tests`.
+
+**Outcome:** Pytest now ignores manual scripts and runs only the automated test suite. All 36 automated tests pass successfully.

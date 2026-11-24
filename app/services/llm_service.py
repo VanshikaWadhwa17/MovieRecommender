@@ -1,8 +1,18 @@
+import os
 import requests
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "qwen2.5:7b"
+from dotenv import load_dotenv
 
+load_dotenv()
+
+OLLAMA_URL = os.getenv(
+    "OLLAMA_URL",
+    "http://localhost:11434/api/generate"
+)
+
+MODEL_NAME = os.getenv("MODEL_NAME", "qwen2.5:7b")
+
+OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "300"))
 
 def generate_response(prompt: str) -> str:
     response = requests.post(
