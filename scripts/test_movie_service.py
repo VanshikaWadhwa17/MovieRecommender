@@ -24,6 +24,8 @@ try:
         print("Matching movies:")
         for movie in result["movies"]:
             print(f"- {movie.title} ({movie.year})")
+        print("\nLLM Response:")
+        print(result["response"])
 
 finally:
     db.close()

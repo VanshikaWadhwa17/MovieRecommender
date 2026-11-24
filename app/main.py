@@ -59,15 +59,17 @@ def get_movie_details(
     return movie
 
 @app.post("/chat")
-def chat(
-    request: ChatRequest,
-    db: Session = Depends(get_db)
-):
+def chat(request: ChatRequest, db: Session = Depends(get_db)):
+
+    # Process the user's question
     result = process_movie_query(request.question, db)
 
+    # Return database results and the LLM-generated response
     return {
         "question": request.question,
+
         "parsed_query": result["parsed_query"],
+
         "movies": [
             {
                 "id": movie.id,
@@ -76,5 +78,7 @@ def chat(
                 "overview": movie.overview
             }
             for movie in result["movies"]
-        ]
+        ],
+
+        "response": result["response"]
     }
