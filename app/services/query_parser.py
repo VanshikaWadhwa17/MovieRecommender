@@ -163,8 +163,25 @@ def extract_titles(question: str, db: Session) -> list[str]:
     ]
 
     single_word_context = [
-        "about", "in", "of", "watch", "film", "movie",
-        "cast", "starring", "featuring"
+        "about",
+        "in",
+        "of",
+        "watch",
+        "film",
+        "movie",
+        "cast",
+        "starring",
+        "featuring",
+        "directed",
+        "director",
+        "stars",
+        "star",
+        "rating",
+        "rated",
+        "score",
+        "ratings",
+        "actors",
+        "actor"
     ]
 
     for title in single_word_titles:

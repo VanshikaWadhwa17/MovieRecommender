@@ -1,5 +1,6 @@
 
 from sqlalchemy import Column, Integer, String, Text, Float, ForeignKey
+from sqlalchemy.orm import relationship
 from app.database.connection import Base
 
 
@@ -18,6 +19,23 @@ class Movie(Base):
     overview = Column(Text, nullable=True)
 
     popularity = Column(Float, nullable=True)
+
+    rating = relationship(
+        "Rating",
+        backref="movie",
+        uselist=False
+    )
+
+    cast_members = relationship(
+        "MovieCast",
+        backref="movie",
+        order_by="MovieCast.cast_order"
+    )
+
+    directors = relationship(
+        "MovieDirector",
+        backref="movie"
+    )
 
 
 class Genre(Base):
@@ -87,6 +105,8 @@ class MovieCast(Base):
 
     cast_order = Column(Integer, nullable=True)
 
+    person = relationship("Person")
+
 class MovieDirector(Base):
     __tablename__ = "movie_directors"
 
@@ -101,3 +121,5 @@ class MovieDirector(Base):
         ForeignKey("people.id"),
         primary_key=True
     )
+
+    person = relationship("Person")

@@ -1,3 +1,4 @@
+
 import os
 import requests
 
@@ -14,6 +15,7 @@ MODEL_NAME = os.getenv("MODEL_NAME", "qwen2.5:7b")
 
 OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "300"))
 
+
 def generate_response(prompt: str) -> str:
     response = requests.post(
         OLLAMA_URL,
@@ -22,7 +24,7 @@ def generate_response(prompt: str) -> str:
             "prompt": prompt,
             "stream": False
         },
-        timeout=300
+        timeout=OLLAMA_TIMEOUT
     )
 
     response.raise_for_status()
@@ -31,51 +33,87 @@ def generate_response(prompt: str) -> str:
 
     return result["response"]
 
+
 def generate_movie_response(question: str, movies: list) -> str:
 
     # Build movie context from database results
     movie_context = ""
 
     for movie in movies:
+
+        # Retrieve rating information
+        if movie.rating:
+            rating = (
+                f"{movie.rating.vote_average}/10 "
+                f"({movie.rating.vote_count} votes)"
+            )
+        else:
+            rating = "Not available"
+
+        # Retrieve cast information (top 5 members)
+        cast = ", ".join(
+            f"{member.person.name} as {member.character}"
+            if member.character
+            else member.person.name
+            for member in movie.cast_members[:5]
+        )
+
+        if not cast:
+            cast = "Not available"
+
+        # Retrieve director information
+        directors = ", ".join(
+            director.person.name
+            for director in movie.directors
+        )
+
+        if not directors:
+            directors = "Not available"
+
         movie_context += f"""
         Title: {movie.title}
         Year: {movie.year}
-        Overview: {movie.overview}
+        Overview: {movie.overview or "Not available"}
+        Rating: {rating}
+        Cast: {cast}
+        Directors: {directors}
         ---
         """
 
     # Build a stricter prompt for the LLM
     prompt = f"""
-        You are a movie information assistant.
+    You are a movie information assistant.
 
-        Your task is to summarise the movie information provided
-        by the database.
+    Your task is to answer the user's movie-related question
+    using the information provided by the database.
 
-        IMPORTANT:
-        The database is your ONLY source of information.
-        Do not use your pretrained knowledge.
+    IMPORTANT:
+    The database is your ONLY source of information.
+    Do not use your pretrained knowledge.
 
-        RULES:
+    RULES:
 
-        1. Only use information explicitly stated in the movie overview.
-        2. Do not add facts, characters, events, scenes or descriptions
-        that are not present in the overview.
-        3. Do not add promotional language or subjective claims.
-        4. Do not invent genres, ratings, actors, awards or soundtrack details.
-        5. Preserve the exact order of the database records.
-        6. Write a maximum of TWO sentences per movie.
-        7. If the overview is empty, say that no description is available.
-        8. Do not recommend movies outside the database results.
+    1. Only use information explicitly present in the database records.
+    2. Use the overview when describing a movie.
+    3. Use the cast field when answering questions about actors.
+    4. Use the directors field when answering questions about directors.
+    5. Use the rating field when answering questions about ratings.
+    6. Do not invent facts, actors, characters, ratings or other details.
+    7. If information is unavailable, clearly say so.
+    8. Do not add promotional language or subjective claims.
+    9. Preserve the exact order of the database records.
+    10. Write a maximum of TWO sentences per movie.
+    11. Do not recommend movies outside the database results.
 
-        USER QUESTION:
-        {question}
+    USER QUESTION:
+    {question}
 
-        DATABASE RECORDS:
-        {movie_context}
+    DATABASE RECORDS:
+    {movie_context}
 
-        Summarise each movie using only its database overview.
-        """
-
+    Answer the user's question directly using only the supplied
+    database records.
+    """
 
     # Generate the response using Ollama
     return generate_response(prompt)

@@ -1,8 +1,22 @@
 
 from sqlalchemy import or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload, joinedload
 
-from app.database.models import Movie, Genre, MovieGenre
+from app.database.models import (
+    Movie,
+    Genre,
+    MovieGenre,
+    MovieCast,
+    MovieDirector
+)
+
+
+def load_movie_relationships(query):
+    return query.options(
+        selectinload(Movie.rating),
+        selectinload(Movie.cast_members).joinedload(MovieCast.person),
+        selectinload(Movie.directors).joinedload(MovieDirector.person)
+    )
 
 
 def get_movies(
@@ -42,6 +56,9 @@ def get_movies(
     # Sort by popularity (highest first)
     query = query.order_by(Movie.popularity.desc())
 
+    # Load ratings, cast and directors
+    query = load_movie_relationships(query)
+
     # Apply pagination
     query = query.offset(skip).limit(limit)
 
@@ -49,4 +66,9 @@ def get_movies(
 
 
 def get_movie_by_id(db: Session, movie_id: int):
-    return db.query(Movie).filter(Movie.id == movie_id).first()
+    query = db.query(Movie).filter(Movie.id == movie_id)
+
+    # Load ratings, cast and directors
+    query = load_movie_relationships(query)
+
+    return query.first()

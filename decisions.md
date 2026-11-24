@@ -2016,3 +2016,28 @@ The project now has automated coverage across its main application layers. Tests
 - Configured `testpaths = tests`.
 
 **Outcome:** Pytest now ignores manual scripts and runs only the automated test suite. All 36 automated tests pass successfully.
+
+---
+
+## 29. Exposing Movie Ratings, Cast and Directors
+
+**Decision:** Expose ratings, cast members and directors through the API and include these fields in the LLM context.
+
+**Implementation:**
+- Added SQLAlchemy relationships between Movie, Rating, MovieCast, MovieDirector and Person.
+- Added nested Pydantic response schemas for ratings, cast members and directors.
+- Used eager loading in the movie repository to retrieve related records efficiently.
+- Updated the `/movies/{movie_id}` and `/movies` responses to include ratings, cast and directors.
+- Updated `/chat` to return the additional movie information.
+- Updated the LLM prompt to use database-provided overviews, ratings, cast and director information.
+- Limited cast information sent to the LLM to the first five cast members to keep the prompt manageable. The API still returns the full cast.
+- Replaced the hardcoded Ollama request timeout with the `OLLAMA_TIMEOUT` environment variable.
+
+**Testing:**
+- All 36 automated tests passed.
+- Verified the Inception movie details endpoint.
+- Verified conversational questions about actors, directors and ratings.
+- Identified and fixed a single-word title extraction issue affecting questions such as "Who directed Inception?"
+- Confirmed that the database records remain the source of factual information.
+
+**Outcome:** Movie metadata is now available to both API consumers and the LLM-powered conversational interface.

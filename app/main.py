@@ -75,7 +75,24 @@ def chat(request: ChatRequest, db: Session = Depends(get_db)):
                 "id": movie.id,
                 "title": movie.title,
                 "year": movie.year,
-                "overview": movie.overview
+                "overview": movie.overview,
+                "rating": {
+                    "vote_average": movie.rating.vote_average,
+                    "vote_count": movie.rating.vote_count
+                } if movie.rating else None,
+                "cast_members": [
+                    {
+                        "name": cast_member.person.name,
+                        "character": cast_member.character
+                    }
+                    for cast_member in movie.cast_members
+                ],
+                "directors": [
+                    {
+                        "name": director.person.name
+                    }
+                    for director in movie.directors
+                ]
             }
             for movie in result["movies"]
         ],
