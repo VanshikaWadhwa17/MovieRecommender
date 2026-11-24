@@ -1,8 +1,14 @@
+
+import logging
+
 from sqlalchemy.orm import Session
 
 from app.services.query_parser import parse_query
 from app.repositories.movie_repository import get_movies
 from app.services.llm_service import generate_movie_response
+
+
+logger = logging.getLogger(__name__)
 
 
 def search_movies(question: str, db: Session):
@@ -30,10 +36,19 @@ def search_movies(question: str, db: Session):
     # Step 4: Generate a response
     if not movies:
         response = "Sorry, no matching movies were found in the database."
-    else:
-        response = generate_movie_response(question, movies)
 
-    # Step 5: Return parsed query, database results and LLM response
+    else:
+        try:
+            response = generate_movie_response(question, movies)
+
+        except Exception:
+            logger.exception("Failed to generate movie response using Ollama.")
+            response = (
+                "The matching movies were found, but the AI response "
+                "could not be generated. Please try again later."
+            )
+
+    # Step 5: Return parsed query, database results and response
     return {
         "parsed_query": parsed_query,
         "movies": movies,

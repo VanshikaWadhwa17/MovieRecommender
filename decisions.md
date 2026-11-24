@@ -1696,7 +1696,7 @@ Tested the integrated service using five different questions.
 
 3. **Response length:** Some movie descriptions reproduce most of the original overview. Future improvement: encourage concise summaries with configurable length limits.
 
-4. **Timeout and error handling:** The current timeout is 300 seconds. Future improvement: introduce controlled error handling, logging and an appropriate fallback response when Ollama is unavailable or times out.
+4. **Timeout and error handling:** The current timeout is 300 seconds. Controlled logging and fallback messaging for Ollama failures are implemented in Section 25.
 
 5. **Factual validation:** Prompt instructions cannot guarantee factual accuracy. Future improvement: validate generated content against retrieved database records.
 
@@ -1845,3 +1845,63 @@ Python would:
 
 - Requires multiple Ollama API calls instead of one.
 - Increases total response time.
+
+---
+
+## 25. Error Handling for Ollama Failures
+
+### Problem
+
+The application depends on the locally hosted Ollama service to generate natural-language movie responses.
+
+If Ollama is unavailable, the request fails, or the model encounters an error, the `/chat` endpoint could fail instead of returning a useful response.
+
+### Decision
+
+Implement error handling in `app/services/movie_service.py` so that Ollama failures do not prevent the application from returning database results.
+
+### Implementation
+
+Added Python logging and a `try/except` block around the LLM response generation.
+
+```python
+try:
+    response = generate_movie_response(question, movies)
+
+except Exception:
+    logger.exception("Failed to generate movie response using Ollama.")
+    response = (
+        "The matching movies were found, but the AI response "
+        "could not be generated. Please try again later."
+    )
+```
+
+The exception is logged for debugging, while the user receives a predefined fallback message.
+
+### Validation
+
+Tested three scenarios:
+
+**1. Ollama available**
+- Movie details retrieved successfully.
+- LLM generated a natural-language response.
+
+**2. Ollama unavailable**
+- Stopped the local Ollama service.
+- Matching movies were still retrieved from SQLite.
+- The exception was logged.
+- The API returned HTTP 200 with the predefined fallback message instead of failing.
+
+**3. Empty movie results**
+- No matching movies found.
+- The predefined empty-result message was returned.
+- Ollama was not called.
+
+**Outcome:** Successful. Database retrieval continues to work even when Ollama fails, and users receive a clear fallback message.
+
+### Benefits
+
+- Prevents `/chat` from failing when Ollama is unavailable.
+- Preserves structured movie results for the caller.
+- Logs the underlying exception for debugging.
+- Separates AI generation failures from database query failures.
