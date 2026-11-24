@@ -1,98 +1,328 @@
 # Movie Recommender
 
-Conversational AI movie assistant that answers movie-related questions using structured database retrieval and LLM-powered response generation.
+A conversational AI movie assistant that answers movie-related questions using structured database retrieval and LLM-powered response generation.
 
-Primary data source: **TMDB 5000 Movies** (see [decisions.md](decisions.md) for why).
+**Primary data source:** TMDB 5000 Movies dataset (see [decisions.md](decisions.md) for dataset selection rationale).
 
----
+## Features
 
-## Project layout
+- Movie data ingestion from TMDB CSV files into SQLite.
+- Structured relational database using SQLAlchemy.
+- Movie search by title, year and genre.
+- Movie details retrieval by ID.
+- Rule-based natural language query parsing.
+- Movie information summaries generated using Ollama and Qwen 2.5 7B.
+- FastAPI REST API with interactive Swagger documentation.
+- Error handling when the local LLM is unavailable.
+- Automated tests using pytest.
 
-```
+## Tech Stack
+
+| Component | Technology |
+|---|---|
+| Language | Python |
+| API | FastAPI |
+| Database | SQLite |
+| ORM | SQLAlchemy |
+| Data processing | Pandas |
+| Validation | Pydantic |
+| LLM runtime | Ollama |
+| LLM model | Qwen 2.5 7B |
+| Testing | Pytest, FastAPI TestClient |
+
+## Project Structure
+
+```text
 MovieRecommender/
-├── data/tmdb/
-│   ├── movies.csv      # TMDB movie metadata
-│   └── credits.csv     # Cast and crew
+├── app/
+│   ├── database/
+│   │   ├── connection.py
+│   │   └── models.py
+│   ├── repositories/
+│   │   └── movie_repository.py
+│   ├── schemas/
+│   │   └── movie.py
+│   ├── services/
+│   │   ├── query_parser.py
+│   │   ├── movie_service.py
+│   │   └── llm_service.py
+│   └── main.py
+├── data/
+│   └── tmdb/
+│       ├── movies.csv
+│       ├── credits.csv
+│       └── movies.db
 ├── scripts/
-│   └── inspect_data.py # Quick dataset inspection
-├── decisions.md        # Architectural / product decisions log
+│   ├── inspect_data.py
+│   ├── init_db.py
+│   ├── ingest_movies.py
+│   ├── test_movie_repository.py
+│   ├── test_query_parser.py
+│   ├── test_movie_service.py
+│   └── test_llm_service.py
+├── tests/
+│   ├── test_api.py
+│   ├── test_movie_repository.py
+│   ├── test_query_parser.py
+│   └── test_movie_service.py
+├── .env.example
+├── .gitignore
+├── decisions.md
+├── pytest.ini
 ├── requirements.txt
 └── README.md
 ```
 
----
-
 ## Setup
 
-Run these from the **project root**.
+Run the following commands from the project root.
 
-### 1. Create / activate a virtual environment (recommended)
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/VanshikaWadhwa17/MovieRecommender
+cd MovieRecommender
+```
+
+### 2. Create and activate a virtual environment
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate   # macOS / Linux
-# .venv\Scripts\activate    # Windows
 ```
 
-### 2. Install dependencies
+macOS / Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+Windows:
+
+```bash
+.venv\Scripts\activate
+```
+
+### 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-**Used for:** installing Python packages needed to load and inspect the TMDB CSVs (currently `pandas`).
+### 4. Add the TMDB dataset
 
-### 3. Confirm data is present
-
-Expected paths:
+Expected files:
 
 - `data/tmdb/movies.csv`
 - `data/tmdb/credits.csv`
 
-If these files are missing, place the TMDB 5000 `movies.csv` and `credits.csv` under `data/tmdb/` before running any scripts.
+Place the TMDB 5000 Movies dataset files in `data/tmdb/`.
 
----
+### 5. Initialize and populate the database
 
-## How to run (current flow)
-
-At this stage the project only has data inspection. End-to-end app run steps will be added here as features land.
-
-| Step | Command | Purpose |
-|------|---------|---------|
-| 1 | `pip install -r requirements.txt` | Install project dependencies |
-| 2 | `python scripts/inspect_data.py` | Load both TMDB CSVs and print record counts, column names, and the first 2 rows of each |
-
-### Inspect the datasets
+Initialize the database:
 
 ```bash
-python scripts/inspect_data.py
+python -m scripts.init_db
 ```
 
-**Used for:** verifying that the TMDB files load correctly from the project root and understanding schema / sample content before building ingestion or query layers.
+Ingest the movie dataset:
 
-**When to run:** after placing the CSVs, after changing data paths, or whenever you want a quick sanity check of the raw data.
+```bash
+python -m scripts.ingest_movies
+```
 
----
+The application uses SQLite and stores the generated database at:
 
-## Dataset snapshot (from `inspect_data.py`)
+```text
+data/tmdb/movies.db
+```
+
+### 6. Configure environment variables
+
+Create your local environment file using the example:
+
+```bash
+cp .env.example .env
+```
+
+The default configuration is:
+
+```env
+OLLAMA_URL=http://localhost:11434/api/generate
+MODEL_NAME=qwen2.5:7b
+OLLAMA_TIMEOUT=300
+```
+
+The `.env` file is excluded from Git to keep local configuration separate from the tracked project files.
+
+### 7. Install and start Ollama
+
+Install Ollama from [https://ollama.com/](https://ollama.com/).
+
+Download the configured model:
+
+```bash
+ollama pull qwen2.5:7b
+```
+
+Verify the installed model:
+
+```bash
+ollama list
+```
+
+Make sure the Ollama service is running before using the AI-powered chat endpoint.
+
+## Running the Application
+
+Start the FastAPI development server:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+The API will be available at:
+
+```text
+http://127.0.0.1:8000
+```
+
+### Interactive API Documentation
+
+Open Swagger UI:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+## API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/health` | Check API health |
+| GET | `/movies` | Search movies using filters |
+| GET | `/movies/{movie_id}` | Retrieve movie details |
+| POST | `/chat` | Process a natural language movie query |
+
+### Example: Search Movies
+
+```http
+GET /movies?genre=Action&year=2015
+```
+
+Optional query parameters:
+
+- `title`: Filter by movie title.
+- `year`: Filter by release year.
+- `genre`: Filter by genre.
+- `skip`: Number of records to skip.
+- `limit`: Maximum number of records (default: 10, maximum: 100).
+
+### Example: Movie Details
+
+```http
+GET /movies/27205
+```
+
+### Example: Conversational Movie Query
+
+Request:
+
+```json
+{
+  "question": "Tell me about Inception"
+}
+```
+
+Endpoint:
+
+```http
+POST /chat
+```
+
+The response includes:
+
+- Original question.
+- Parsed query (intent, genre, year and titles).
+- Matching database records.
+- LLM-generated movie summary.
+
+## Automated Testing
+
+The project uses pytest for automated testing.
+
+Run the complete test suite:
+
+```bash
+python -m pytest -v
+```
+
+Pytest is configured through `pytest.ini` to discover tests only inside the `tests/` directory.
+
+Current automated test coverage includes:
+
+| Test module | Coverage |
+|---|---|
+| `test_query_parser.py` | Intent, genre, year and title extraction |
+| `test_movie_repository.py` | Database retrieval, filtering, sorting and pagination |
+| `test_movie_service.py` | Movie query processing and LLM failure handling |
+| `test_api.py` | API endpoints, response validation and error handling |
+
+**Current test status:** 36 automated tests passing.
+
+## Dataset Information
+
+The project uses the TMDB 5000 Movies dataset.
 
 ### Movies
 
 - **Rows:** 4,803
-- **Columns include:** `title`, `overview`, `genres`, `release_date`, `vote_average`, `vote_count`, `popularity`, and others (`budget`, `homepage`, `id`, `keywords`, `original_language`, `original_title`, `production_companies`, `production_countries`, `revenue`, `runtime`, `spoken_languages`, `status`, `tagline`)
+- **Fields include:** title, overview, genres, release date, vote average, vote count and popularity.
 
 ### Credits
 
 - **Rows:** 4,803
-- **Columns:** `movie_id`, `title`, `cast`, `crew`
+- **Fields:** movie ID, title, cast and crew.
 
-### Notes
+### Database Design
 
-- First rows look like Avatar and similar TMDB entries.
-- `genres`, `cast`, and `crew` (and several other fields) store **nested JSON** as strings in the CSV — these need parsing before structured querying.
+The relational database contains seven tables:
+
+1. `movies`
+2. `genres`
+3. `movie_genres`
+4. `ratings`
+5. `people`
+6. `movie_cast`
+7. `movie_directors`
+
+The dataset contains nested JSON fields, including genres, cast and crew, which are parsed during ingestion.
+
+## Architecture and Design Decisions
+
+The application follows a modular monolith architecture:
+
+- **API layer:** Handles HTTP requests and responses.
+- **Repository layer:** Handles database queries.
+- **Service layer:** Processes natural language queries and coordinates LLM responses.
+- **Database layer:** Stores structured movie information.
+- **LLM integration:** Uses retrieved database information to generate natural-language summaries.
+
+The database is the source of truth. The LLM is used to summarise retrieved information rather than independently retrieve or invent movie facts.
+
+Architectural choices, implementation trade-offs and known limitations are documented in [decisions.md](decisions.md).
+
+## Future Improvements
+
+Potential areas for further development include:
+
+- More robust natural language query understanding.
+- Improved movie title matching and typo handling.
+- Better control over LLM response ordering and factual consistency.
+- Expanded automated testing.
+- Additional API validation and integration tests.
+- Deployment and production configuration.
 
 ---
 
-## Decision log
-
-Architectural choices (dataset selection, trade-offs, FAQs) are tracked in [decisions.md](decisions.md).
+**Note:** This project is being developed incrementally. The README will evolve as additional functionality is implemented.
