@@ -6,6 +6,7 @@ from app.database.connection import get_db
 from app.repositories.movie_repository import get_movies, get_movie_by_id
 from app.services.movie_service import search_movies as process_movie_query
 from app.schemas.movie import MovieResponse
+from app.schemas.chat import ChatResponse
 from pydantic import BaseModel
 
 app = FastAPI(
@@ -58,7 +59,7 @@ def get_movie_details(
 
     return movie
 
-@app.post("/chat")
+@app.post("/chat", response_model=ChatResponse, response_model_exclude_unset=True)
 def chat(request: ChatRequest, db: Session = Depends(get_db)):
 
     # Process the user's question

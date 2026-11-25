@@ -1,5 +1,11 @@
 
-from pydantic import BaseModel, ConfigDict, Field, AliasPath
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    AliasChoices,
+    AliasPath
+)
 
 
 class RatingResponse(BaseModel):
@@ -11,7 +17,10 @@ class RatingResponse(BaseModel):
 
 class CastResponse(BaseModel):
     name: str = Field(
-        validation_alias=AliasPath("person", "name")
+        validation_alias=AliasChoices(
+            "name",
+            AliasPath("person", "name")
+        )
     )
     character: str | None = None
 
@@ -20,7 +29,10 @@ class CastResponse(BaseModel):
 
 class DirectorResponse(BaseModel):
     name: str = Field(
-        validation_alias=AliasPath("person", "name")
+        validation_alias=AliasChoices(
+            "name",
+            AliasPath("person", "name")
+        )
     )
 
     model_config = ConfigDict(from_attributes=True)
