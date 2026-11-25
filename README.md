@@ -41,6 +41,7 @@ MovieRecommender/
 │   ├── repositories/
 │   │   └── movie_repository.py
 │   ├── schemas/
+│   │   ├── chat.py
 │   │   └── movie.py
 │   ├── services/
 │   │   ├── query_parser.py
@@ -120,7 +121,7 @@ Expected files:
 - `data/tmdb/movies.csv`
 - `data/tmdb/credits.csv`
 
-Place the TMDB 5000 Movies dataset files in `data/tmdb/`.
+Download the TMDB 5000 Movie Dataset from [Kaggle](https://www.kaggle.com/datasets/tmdb/tmdb-movie-metadata) and place the CSV files in `data/tmdb/`.
 
 ### 5. Initialize and populate the database
 
@@ -393,11 +394,11 @@ Current automated test coverage includes:
 | Test module | Coverage |
 |---|---|
 | `test_query_parser.py` | Intent, genre, year and title extraction |
-| `test_movie_repository.py` | Database retrieval, filtering, sorting and pagination |
+| `test_movie_repository.py` | Database retrieval, filtering, sorting, pagination and service integration |
 | `test_movie_service.py` | Movie query processing and LLM failure handling |
 | `test_api.py` | API endpoints, response validation and error handling |
 
-**Current test status:** 37 automated tests passing.
+**Current test status:** 40 automated tests passing.
 
 ## Dataset Information
 
