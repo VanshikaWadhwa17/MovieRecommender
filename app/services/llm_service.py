@@ -34,7 +34,11 @@ def generate_response(prompt: str) -> str:
     return result["response"]
 
 
-def generate_movie_response(question: str, movies: list) -> str:
+def generate_movie_response(
+    question: str,
+    movies: list,
+    intent: str
+) -> str:
 
     # Build movie context from database results
     movie_context = ""
@@ -80,13 +84,9 @@ def generate_movie_response(question: str, movies: list) -> str:
         ---
         """
 
-    # Identify recommendation questions
-    question_lower = question.lower()
-
-    is_recommendation = any(
-        keyword in question_lower
-        for keyword in ["recommend", "suggest", "recommendation"]
-    )
+    # Identify recommendation requests using the parsed intent.
+    # The movie service passes the intent returned by query_parser.
+    is_recommendation = intent == "recommend"
 
     # Recommendation response:
     # Let the LLM generate only a short introduction.

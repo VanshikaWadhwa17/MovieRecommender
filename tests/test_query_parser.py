@@ -17,6 +17,7 @@ from app.database.connection import SessionLocal
     [
         ("Recommend action movies", "recommend"),
         ("Suggest some good movies", "recommend"),
+        ("What should I watch?", "recommend"),
         ("Tell me about Inception", "movie_details"),
         ("Show me movies from 2015", "search"),
     ]
@@ -45,6 +46,7 @@ def test_extract_genre(question, expected):
         ("Show comedy movies released in 2015", 2015),
         ("Find movies from 1999", 1999),
         ("Tell me about Inception", None),
+        ("Recommend movies from 2024", 2024),
     ]
 )
 def test_extract_year(question, expected):

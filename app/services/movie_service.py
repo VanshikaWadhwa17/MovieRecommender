@@ -44,7 +44,11 @@ def search_movies(question: str, db: Session):
 
     else:
         try:
-            response = generate_movie_response(question, movies)
+            response = generate_movie_response(
+                question=question,
+                movies=movies,
+                intent=parsed_query["intent"]
+            )
 
         except requests.exceptions.RequestException:
             logger.exception(
