@@ -247,12 +247,69 @@ Endpoint:
 POST /chat
 ```
 
-The response includes:
+Successful response:
 
-- Original question.
-- Parsed query (intent, genre, year and titles).
-- Matching database records.
-- LLM-generated movie summary.
+```json
+{
+  "question": "Tell me about Inception",
+  "parsed_query": {
+    "intent": "movie_details",
+    "genre": null,
+    "year": null,
+    "titles": [
+      "Inception"
+    ]
+  },
+  "movies": [
+    {
+      "id": 27205,
+      "title": "Inception",
+      "year": 2010,
+      "overview": "Cobb, a skilled thief who commits corporate espionage by infiltrating the subconscious of his targets is offered a chance to regain his old life as payment for a task considered to be impossible: \"inception\", the implantation of another person's idea into a target's subconscious.",
+      "rating": {
+        "vote_average": 8.1,
+        "vote_count": 13752
+      },
+      "cast_members": [
+        {
+          "name": "Leonardo DiCaprio",
+          "character": "Dom Cobb"
+        },
+        {
+          "name": "Joseph Gordon-Levitt",
+          "character": "Arthur"
+        },
+        {
+          "name": "Ellen Page",
+          "character": "Ariadne"
+        },
+        {
+          "name": "Tom Hardy",
+          "character": "Eames"
+        },
+        {
+          "name": "Ken Watanabe",
+          "character": "Saito"
+        }
+      ],
+      "directors": [
+        {
+          "name": "Christopher Nolan"
+        }
+      ]
+    }
+  ],
+  "response": "Inception is a 2010 film directed by Christopher Nolan. The movie, with a rating of 8.1/10, follows Dom Cobb, played by Leonardo DiCaprio, as he attempts to implant an idea into someone's subconscious mind."
+}
+```
+
+> Note: The cast list in this documentation example is abbreviated to the first five entries. The actual API response includes the full cast retrieved from the database.
+
+The response demonstrates:
+- Natural-language query parsing.
+- Structured movie retrieval from SQLite.
+- Movie overview, rating, cast and director information.
+- LLM-generated response using database-provided context.
 
 ### Example: Movie Recommendations
 
