@@ -11,6 +11,10 @@ from app.database.connection import Base
 from app.database.models import Movie, Genre, MovieGenre, Rating
 from app.repositories.movie_repository import get_movies, get_movie_by_id
 
+from unittest.mock import patch
+
+from app.services.movie_service import search_movies
+
 
 @pytest.fixture
 def db():
@@ -167,3 +171,47 @@ def test_get_movies_sorts_recommendations_by_rating_and_vote_count(db):
         "The Dark Knight",
         "Inception"
     ]
+@patch("app.services.movie_service.generate_movie_response")
+def test_search_movies_integration(
+    mock_generate_response,
+    db,
+    monkeypatch
+):
+    # Reset the movie title cache so titles are loaded from the test database.
+    monkeypatch.setattr(
+        "app.services.query_parser._MOVIE_TITLES_CACHE",
+        None
+    )
+
+    # Mock only the external LLM response.
+    mock_generate_response.return_value = (
+        "Inception is a science fiction film."
+    )
+
+    # Execute the real query parser, service and repository.
+    result = search_movies(
+        "Tell me about Inception",
+        db
+    )
+
+    # Verify query parsing.
+    assert result["parsed_query"]["intent"] == "movie_details"
+    assert result["parsed_query"]["titles"] == ["Inception"]
+
+    # Verify actual SQLite retrieval.
+    assert len(result["movies"]) == 1
+    assert result["movies"][0].title == "Inception"
+    assert result["movies"][0].year == 2010
+
+    # Verify the generated response.
+    assert result["response"] == (
+        "Inception is a science fiction film."
+    )
+
+    # Verify the LLM received the actual retrieved movie.
+    mock_generate_response.assert_called_once()
+
+    call_kwargs = mock_generate_response.call_args.kwargs
+
+    assert call_kwargs["intent"] == "movie_details"
+    assert call_kwargs["movies"][0].title == "Inception"
