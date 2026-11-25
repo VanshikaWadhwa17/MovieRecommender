@@ -2112,3 +2112,87 @@ Non-recommendation queries continue to use the LLM to generate answers from data
 - Confirmed all 10 movies appear in the generated response.
 - Confirmed the recommendation order matches the database results.
 - Ran the automated test suite successfully: 37 tests passed.
+
+---
+
+## 32. Consistent Recommendation Intent Handling
+
+### Problem
+
+The query parser and LLM service previously determined recommendation intent independently.
+
+This could cause inconsistent behaviour if the two components interpreted the same question differently.
+
+For example, the query parser could classify a question as `recommend`, while the LLM service independently detected a different intent.
+
+### Decision
+
+Use the intent identified by `parse_query()` as the single source of truth throughout the movie query service.
+
+### Implementation
+
+- Updated `movie_service.py` to pass the parsed intent to `generate_movie_response()`.
+- Updated `llm_service.py` to use the supplied intent instead of independently detecting recommendation keywords.
+- Kept intent detection within `query_parser.py`.
+
+### Reason
+
+This avoids duplicated intent-detection logic and ensures that the service and LLM response generation follow the same interpretation of the user's question.
+
+### Validation
+
+- Tested recommendation queries such as "Recommend action movies".
+- Added a regression test for "What should I watch?".
+- Confirmed that recommendation results are generated using the recommendation flow.
+- Ran the automated test suite successfully.
+
+**Outcome:** The query parser is now the single source of truth for intent classification.
+
+---
+
+## 33. Pydantic Response Model for the Chat Endpoint
+
+### Problem
+
+The `/movies` endpoints already used Pydantic response models, but `/chat` returned a manually constructed dictionary without an explicit response schema.
+
+This meant the chat response structure was not validated through a dedicated Pydantic model.
+
+### Decision
+
+Introduce a `ChatResponse` Pydantic model for `POST /chat` and reuse the existing `MovieResponse` schema for returned movie records.
+
+### Implementation
+
+- Created `app/schemas/chat.py`.
+- Added `ParsedQueryResponse` to validate the parsed intent, genre, year and movie titles.
+- Added `ChatResponse` to validate the original question, parsed query, movie list and generated response.
+- Updated the `/chat` endpoint to use `response_model=ChatResponse`.
+- Reused `MovieResponse` rather than duplicating movie fields.
+
+### Supporting SQLAlchemy Objects and Dictionaries
+
+The movie response schemas need to support two data structures:
+
+- `/movies` endpoints return SQLAlchemy objects with nested person relationships.
+- `/chat` constructs dictionaries containing direct `name` fields.
+
+Updated `CastResponse` and `DirectorResponse` to use Pydantic's `AliasChoices` and `AliasPath`.
+
+This allows Pydantic to read either a direct `name` field or a nested `person.name` attribute.
+
+### Validation
+
+Verified the following endpoints through Swagger UI:
+
+- `GET /movies`
+- `GET /movies/27205`
+- `POST /chat` using "Tell me about Inception"
+
+All three endpoints returned successful responses with the expected movie, rating, cast and director information.
+
+The complete automated test suite passed with 39 tests.
+
+### Outcome
+
+All three movie API endpoints now use consistent response validation while preserving their existing response structures.
