@@ -114,14 +114,14 @@ Windows:
 pip install -r requirements.txt
 ```
 
-### 4. Add the TMDB dataset
+### 4. TMDB dataset
 
-Expected files:
+The TMDB 5000 Movie Dataset CSV files are already included in the repository:
 
 - `data/tmdb/movies.csv`
 - `data/tmdb/credits.csv`
 
-Download the TMDB 5000 Movie Dataset from [Kaggle](https://www.kaggle.com/datasets/tmdb/tmdb-movie-metadata) and place the CSV files in `data/tmdb/`.
+No additional download is required to run the application. The original dataset is available on [Kaggle](https://www.kaggle.com/datasets/tmdb/tmdb-movie-metadata) for reference.
 
 ### 5. Initialize and populate the database
 
